@@ -4,9 +4,25 @@ use std::path::PathBuf;
 use directories::ProjectDirs;
 use eframe::egui;
 
+use serde::{Deserialize, Serialize};
+use std::io::BufWriter;
+
 struct NyvoApp {
     config_dir_path: PathBuf,
     config_file_path: PathBuf,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Connect {
+    username: String,
+    password: String,
+    host: String,
+    port: usize,
+}
+
+#[derive(Serialize, Deserialize)]
+struct NyvoConfig {
+    connections: Vec<Connect>,
 }
 
 impl NyvoApp {
@@ -69,7 +85,12 @@ fn create_configs(
 
             *config_file_path = config_dir_path.join("connections.json");
             if !config_file_path.exists() {
-                fs::File::create(&*config_file_path)?;
+                let file = fs::File::create(&*config_file_path)?;
+                let writer = BufWriter::new(file);
+                let config = NyvoConfig {
+                    connections: vec![],
+                };
+                serde_json::to_writer(writer, &config)?;
             }
 
             Ok(())
