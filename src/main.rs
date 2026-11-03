@@ -7,7 +7,20 @@ use eframe::egui;
 use serde::{Deserialize, Serialize};
 use std::io::BufWriter;
 
+use std::sync::mpsc::{Receiver, Sender, channel};
+
+use deadpool_postgres::Pool;
+use tokio_postgres::SimpleQueryMessage;
+
+enum AsyncChannelResult {
+    PoolResult(Result<Pool, String>),
+    QueryResult(Result<Vec<SimpleQueryMessage>, tokio_postgres::Error>),
+}
+
 struct NyvoApp {
+    tx: Sender<AsyncChannelResult>,
+    rx: Receiver<AsyncChannelResult>,
+    runtime_tokio: tokio::runtime::Runtime,
     config_dir_path: PathBuf,
     config_file_path: PathBuf,
 }
@@ -26,8 +39,16 @@ struct NyvoConfig {
 }
 
 impl NyvoApp {
-    fn new(config_dir_path: PathBuf, config_file_path: PathBuf) -> Self {
+    fn new(
+        config_dir_path: PathBuf,
+        config_file_path: PathBuf,
+        runtime_tokio: tokio::runtime::Runtime,
+    ) -> Self {
+        let (tx, rx) = channel();
         Self {
+            tx,
+            rx,
+            runtime_tokio,
             config_dir_path,
             config_file_path,
         }
@@ -61,13 +82,24 @@ fn main() -> Result<(), eframe::Error> {
 
     match create_configs(&mut config_dir_path, &mut config_file_path) {
         Ok(_) => {}
-        Err(e) => println!("Error occured: {}", e),
+        Err(e) => panic!("Error occured: {}", e),
+    };
+
+    let runtime_tokio = match tokio::runtime::Runtime::new() {
+        Ok(v) => v,
+        Err(e) => panic!("Error occured: {}", e),
     };
 
     eframe::run_native(
         "nyvodb",
         native_options,
-        Box::new(|_c| Ok(Box::new(NyvoApp::new(config_dir_path, config_file_path)))),
+        Box::new(|_c| {
+            Ok(Box::new(NyvoApp::new(
+                config_dir_path,
+                config_file_path,
+                runtime_tokio,
+            )))
+        }),
     )
 }
 
