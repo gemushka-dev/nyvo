@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::PathBuf;
+use std::time::Duration;
 
 use directories::ProjectDirs;
 use eframe::egui;
@@ -9,8 +10,10 @@ use std::io::BufWriter;
 
 use std::sync::mpsc::{Receiver, Sender, channel};
 
-use deadpool_postgres::Pool;
-use tokio_postgres::SimpleQueryMessage;
+use deadpool_postgres::{
+    Manager, ManagerConfig, Pool, RecyclingMethod::Fast, Runtime::Tokio1, Timeouts,
+};
+use tokio_postgres::{Config, NoTls, SimpleQueryMessage};
 
 enum AsyncChannelResult {
     PoolResult(Result<Pool, String>),
@@ -30,7 +33,8 @@ struct Connect {
     username: String,
     password: String,
     host: String,
-    port: usize,
+    port: u16,
+    dbname: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -101,6 +105,47 @@ fn main() -> Result<(), eframe::Error> {
             )))
         }),
     )
+}
+
+fn create_pool(
+    user: String,
+    password: String,
+    host: String,
+    port: u16,
+    dbname: String,
+) -> Result<Pool, String> {
+    let mut config = Config::new();
+    config.user(user);
+    config.password(password);
+    config.host(host);
+    config.port(port);
+    config.dbname(dbname);
+
+    let timeouts = Timeouts {
+        wait: Some(Duration::from_secs(5)),
+        create: Some(Duration::from_secs(10)),
+        recycle: Some(Duration::from_secs(3)),
+    };
+
+    let manager_config = ManagerConfig {
+        recycling_method: Fast,
+    };
+
+    let manager = Manager::from_config(config, NoTls, manager_config);
+
+    let pool_result = Pool::builder(manager)
+        .timeouts(timeouts)
+        .max_size(16)
+        .runtime(Tokio1)
+        .build();
+
+    match pool_result {
+        Ok(pool) => Ok(pool),
+        Err(e) => Err(format!(
+            "Error occured during creating pool connection: {}",
+            e
+        )),
+    }
 }
 
 fn create_configs(
