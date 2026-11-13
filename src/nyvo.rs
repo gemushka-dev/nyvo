@@ -1,5 +1,5 @@
 use crate::app_enums::{AsyncChannelResult, ConnectionMode};
-use crate::ui::connection::render_connection_mode;
+use crate::ui::connection::{render_connection_fields, render_connection_mode};
 
 use std::path::PathBuf;
 
@@ -49,36 +49,14 @@ impl eframe::App for NyvoApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         egui::Panel::left("sidebar").resizable(true).show(ui, |ui| {
             ui.heading("PostgreSQL Connection");
-
-            ui.horizontal(|ui| {
-                let creds_color = if self.conn_mode == ConnectionMode::Credentials {
-                    egui::Color32::from_rgb(51, 126, 164)
-                } else {
-                    egui::Color32::TRANSPARENT
-                };
-                let creds = egui::Button::new("Credentials").fill(creds_color);
-                if ui.add(creds).clicked() {
-                    self.conn_mode = ConnectionMode::Credentials;
-                }
-
-                let url_color = if self.conn_mode == ConnectionMode::URL {
-                    egui::Color32::from_rgb(51, 126, 164)
-                } else {
-                    egui::Color32::TRANSPARENT
-                };
-                let creds = egui::Button::new("URL string").fill(url_color);
-                if ui.add(creds).clicked() {
-                    self.conn_mode = ConnectionMode::URL
-                }
-            });
-            ui.separator();
-
             render_connection_mode(self, ui);
+            ui.separator();
+            render_connection_fields(self, ui);
         });
 
         egui::CentralPanel::default().show(ui, |ui| {
             let available_width = ui.available_width();
-            ui.button("Run SQL");
+            let _ = ui.button("Run SQL");
             ui.separator();
             ui.add(egui::TextEdit::multiline(&mut self.query).desired_width(available_width));
         });
