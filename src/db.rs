@@ -6,11 +6,11 @@ use deadpool_postgres::{
 use tokio_postgres::{Config, NoTls};
 
 pub fn create_pool(
-    user: String,
-    password: String,
-    host: String,
+    user: &String,
+    password: &String,
+    host: &String,
     port: u16,
-    dbname: String,
+    dbname: &String,
 ) -> Result<Pool, String> {
     let mut config = Config::new();
     config.user(user);
