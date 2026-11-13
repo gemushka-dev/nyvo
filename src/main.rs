@@ -3,6 +3,7 @@ mod app_structs;
 mod db;
 mod nyvo;
 mod storage;
+mod ui;
 
 use nyvo::NyvoApp;
 use storage::create_configs;

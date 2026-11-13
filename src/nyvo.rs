@@ -1,22 +1,24 @@
 use crate::app_enums::{AsyncChannelResult, ConnectionMode};
+use crate::ui::connection::render_connection_mode;
+
 use std::path::PathBuf;
 
 use eframe::egui;
 use std::sync::mpsc::{Receiver, Sender, channel};
 
 pub struct NyvoApp {
-    tx: Sender<AsyncChannelResult>,
-    rx: Receiver<AsyncChannelResult>,
-    runtime_tokio: tokio::runtime::Runtime,
-    config_dir_path: PathBuf,
-    config_file_path: PathBuf,
-    query: String,
-    conn_mode: ConnectionMode,
-    user: String,
-    password: String,
-    host: String,
-    port: String,
-    dbname: String,
+    pub tx: Sender<AsyncChannelResult>,
+    pub rx: Receiver<AsyncChannelResult>,
+    pub runtime_tokio: tokio::runtime::Runtime,
+    pub config_dir_path: PathBuf,
+    pub config_file_path: PathBuf,
+    pub query: String,
+    pub conn_mode: ConnectionMode,
+    pub user: String,
+    pub password: String,
+    pub host: String,
+    pub port: String,
+    pub dbname: String,
 }
 
 impl NyvoApp {
@@ -71,40 +73,7 @@ impl eframe::App for NyvoApp {
             });
             ui.separator();
 
-            match self.conn_mode {
-                ConnectionMode::Credentials => {
-                    egui::Grid::new("credentials_grid")
-                        .num_columns(2)
-                        .spacing([8.0, 6.0])
-                        .show(ui, |ui| {
-                            ui.label("Host:");
-                            ui.text_edit_singleline(&mut self.host);
-                            ui.end_row();
-
-                            ui.label("Port:");
-                            ui.text_edit_singleline(&mut self.port);
-                            ui.end_row();
-
-                            ui.label("Database:");
-                            ui.text_edit_singleline(&mut self.dbname);
-                            ui.end_row();
-
-                            ui.label("User:");
-                            ui.text_edit_singleline(&mut self.user);
-                            ui.end_row();
-
-                            ui.label("Password:");
-                            ui.add(egui::TextEdit::singleline(&mut self.password).password(true));
-                            ui.end_row();
-                        });
-                    ui.add_space(6.0);
-                    ui.button("Connect with Credentials");
-                    ui.separator();
-                    ui.heading("Database Navigator");
-                    ui.label("Connect to a database to inspect tables and columns")
-                }
-                ConnectionMode::URL => ui.label("Soon..."),
-            };
+            render_connection_mode(self, ui);
         });
 
         egui::CentralPanel::default().show(ui, |ui| {
