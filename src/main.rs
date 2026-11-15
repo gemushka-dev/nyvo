@@ -10,6 +10,8 @@ use storage::create_configs;
 
 use std::path::PathBuf;
 
+use crate::storage::get_creds;
+
 fn main() -> Result<(), eframe::Error> {
     let native_options = eframe::NativeOptions::default();
 
@@ -26,6 +28,11 @@ fn main() -> Result<(), eframe::Error> {
         Err(e) => panic!("Error occured: {}", e),
     };
 
+    let saved_connections = match get_creds(&mut config_dir_path, &mut config_file_path) {
+        Ok(sc) => sc,
+        Err(e) => panic!("Error occured: {}", e),
+    };
+
     eframe::run_native(
         "nyvodb",
         native_options,
@@ -34,6 +41,7 @@ fn main() -> Result<(), eframe::Error> {
                 config_dir_path,
                 config_file_path,
                 runtime_tokio,
+                saved_connections,
             )))
         }),
     )

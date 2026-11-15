@@ -62,9 +62,7 @@ pub fn render_connection_fields(state: &mut NyvoApp, ui: &mut egui::Ui) {
                     let _ = txc.send(AsyncChannelResult::PoolResult(result));
                 });
             }
-            ui.separator();
-            ui.heading("Database Navigator");
-            ui.label("Connect to a database to inspect tables and columns")
+            ui.separator()
         }
         ConnectionMode::URL => ui.label("Soon..."),
     };
@@ -92,4 +90,37 @@ pub fn render_connection_mode(state: &mut NyvoApp, ui: &mut egui::Ui) {
             state.conn_mode = ConnectionMode::URL
         }
     });
+}
+
+pub fn render_saved_connections(state: &mut NyvoApp, ui: &mut egui::Ui) {
+    if state.saved_connections.len() == 0 {
+        ui.heading("Database Navigator");
+        ui.label("Connect to a database to inspect tables and columns");
+    }
+    egui::ScrollArea::horizontal()
+        .id_salt("saved_connections_scroll")
+        .show(ui, |ui| {
+            ui.horizontal(|ui| {
+                ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
+                for conn in state.saved_connections.iter() {
+                    ui.group(|ui| {
+                        ui.vertical(|ui| {
+                            ui.label(
+                                egui::RichText::new(&conn.name)
+                                    .weak()
+                                    .color(egui::Color32::WHITE),
+                            );
+                            ui.label(
+                                egui::RichText::new(format!(
+                                    "{}:{} • {}",
+                                    &conn.host, &conn.port, &conn.username
+                                ))
+                                .weak()
+                                .color(egui::Color32::LIGHT_GRAY),
+                            )
+                        });
+                    });
+                }
+            });
+        });
 }

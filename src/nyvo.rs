@@ -1,14 +1,15 @@
 use crate::app_enums::{AsyncChannelResult, ConnectionMode};
-use crate::ui::connection::{render_connection_fields, render_connection_mode};
+use crate::app_structs::PgConnect;
+use crate::ui::connection::{
+    render_connection_fields, render_connection_mode, render_saved_connections,
+};
 
 use std::collections::HashMap;
-use std::fmt::format;
 use std::path::PathBuf;
 use std::sync::RwLock;
 
 use deadpool_postgres::Pool;
 use eframe::egui;
-use eframe::egui::debug_text::print;
 use std::sync::mpsc::{Receiver, Sender, channel};
 
 pub struct NyvoApp {
@@ -26,6 +27,7 @@ pub struct NyvoApp {
     pub port: String,
     pub dbname: String,
     pub connections: RwLock<HashMap<String, Pool>>,
+    pub saved_connections: Vec<PgConnect>,
     pub log_info: String,
 }
 
@@ -34,6 +36,7 @@ impl NyvoApp {
         config_dir_path: PathBuf,
         config_file_path: PathBuf,
         runtime_tokio: tokio::runtime::Runtime,
+        saved_connections: Vec<PgConnect>,
     ) -> Self {
         let (tx, rx) = channel();
         Self {
@@ -51,6 +54,7 @@ impl NyvoApp {
             port: String::from("5432"),
             dbname: String::from("postgres"),
             connections: RwLock::new(HashMap::new()),
+            saved_connections,
             log_info: String::new(),
         }
     }
@@ -89,10 +93,12 @@ impl eframe::App for NyvoApp {
             }
         }
         egui::Panel::left("sidebar").resizable(true).show(ui, |ui| {
+            ui.set_min_width(280.0);
             ui.heading("PostgreSQL Connection");
             render_connection_mode(self, ui);
             ui.separator();
             render_connection_fields(self, ui);
+            render_saved_connections(self, ui);
         });
 
         egui::CentralPanel::default().show(ui, |ui| {
