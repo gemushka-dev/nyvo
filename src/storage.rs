@@ -54,3 +54,15 @@ pub fn add_creds(
     fs::write(&config_file_path, json)?;
     Ok(())
 }
+
+pub fn get_creds(
+    config_dir_path: &mut PathBuf,
+    config_file_path: &mut PathBuf,
+) -> Result<Vec<PgConnect>, std::io::Error> {
+    if !config_dir_path.exists() || !config_file_path.exists() {
+        let _ = create_configs(config_dir_path, config_file_path)?;
+    }
+    let raw_json = fs::read_to_string(&config_file_path)?;
+    let config: NyvoConfig = serde_json::from_str(&raw_json)?;
+    Ok(config.connections)
+}
