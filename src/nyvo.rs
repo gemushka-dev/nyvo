@@ -1,8 +1,11 @@
 use crate::app_enums::{AsyncChannelResult, ConnectionMode};
 use crate::ui::connection::{render_connection_fields, render_connection_mode};
 
+use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::RwLock;
 
+use deadpool_postgres::Pool;
 use eframe::egui;
 use std::sync::mpsc::{Receiver, Sender, channel};
 
@@ -14,11 +17,13 @@ pub struct NyvoApp {
     pub config_file_path: PathBuf,
     pub query: String,
     pub conn_mode: ConnectionMode,
+    pub name: String,
     pub user: String,
     pub password: String,
     pub host: String,
     pub port: String,
     pub dbname: String,
+    pub connections: RwLock<HashMap<String, Pool>>,
 }
 
 impl NyvoApp {
@@ -36,12 +41,24 @@ impl NyvoApp {
             config_file_path,
             query: String::new(),
             conn_mode: ConnectionMode::Credentials,
+            name: String::new(),
             user: String::from("postgres"),
             password: String::new(),
             host: String::from("localhost"),
             port: String::from("5432"),
             dbname: String::from("postgres"),
+            connections: RwLock::new(HashMap::new()),
         }
+    }
+
+    fn get_pool(&self, id: &String) -> Option<Pool> {
+        let guard = self.connections.read().unwrap();
+        guard.get(id).cloned()
+    }
+
+    fn add_pool(&self, id: String, pool: Pool) {
+        let mut guard = self.connections.write().unwrap();
+        guard.insert(id, pool);
     }
 }
 
