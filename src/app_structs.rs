@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct PgConnect {
+    pub id: String,
+    pub name: String,
     pub username: String,
     pub password: String,
     pub host: String,

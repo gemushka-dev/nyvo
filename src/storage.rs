@@ -1,4 +1,4 @@
-use crate::app_structs::NyvoConfig;
+use crate::app_structs::{NyvoConfig, PgConnect};
 
 use std::fs;
 use std::io::BufWriter;
@@ -35,4 +35,22 @@ pub fn create_configs(
             "Could not identify user system folder",
         )),
     }
+}
+
+pub fn add_creds(
+    config_dir_path: &mut PathBuf,
+    config_file_path: &mut PathBuf,
+    connect: PgConnect,
+) -> Result<(), std::io::Error> {
+    if !config_dir_path.exists() || !config_file_path.exists() {
+        let _ = create_configs(config_dir_path, config_file_path)?;
+    }
+
+    let raw_json = fs::read_to_string(&config_file_path)?;
+    let mut config: NyvoConfig = serde_json::from_str(&raw_json)?;
+    config.connections.push(connect);
+
+    let json = serde_json::to_string_pretty(&config).unwrap();
+    fs::write(&config_file_path, json)?;
+    Ok(())
 }
