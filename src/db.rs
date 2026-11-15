@@ -5,12 +5,12 @@ use deadpool_postgres::{
 };
 use tokio_postgres::{Config, NoTls};
 
-pub fn create_pool(
-    user: &String,
-    password: &String,
-    host: &String,
+pub async fn create_pool(
+    user: String,
+    password: String,
+    host: String,
     port: u16,
-    dbname: &String,
+    dbname: String,
 ) -> Result<Pool, String> {
     let mut config = Config::new();
     config.user(user);
@@ -37,19 +37,15 @@ pub fn create_pool(
         .runtime(Tokio1)
         .build()
         .map_err(|e| format!("Failed to build connection pool: {}", e))?;
-    let runtime_tokio = tokio::runtime::Runtime::new()
-        .map_err(|e| format!("Failed to create tokio runtime for test: {}", e))?;
 
-    runtime_tokio.block_on(async {
-        let client = pool
-            .get()
-            .await
-            .map_err(|e| format!("Database connection error: {}", e))?;
-        client
-            .simple_query("SELECT 1")
-            .await
-            .map_err(|e| format!("Database query error: {}", e))?;
+    let client = pool
+        .get()
+        .await
+        .map_err(|e| format!("Database connection error: {}", e))?;
+    client
+        .simple_query("SELECT 1")
+        .await
+        .map_err(|e| format!("Database query error: {}", e))?;
 
-        Ok::<Pool, String>(pool)
-    })
+    Ok(pool)
 }
