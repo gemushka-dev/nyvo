@@ -71,8 +71,8 @@ impl eframe::App for NyvoApp {
         if let Ok(result) = self.rx.try_recv() {
             match result {
                 AsyncChannelResult::PoolResult(v) => match v {
-                    Ok(pool) => {
-                        self.add_pool(format!("{}:{}:{}", self.name, self.host, self.dbname), pool);
+                    Ok(pool_result) => {
+                        self.add_pool(pool_result.1, pool_result.0);
                         self.log_info = String::from(format!(
                             "Successfully connected to database '{}'",
                             self.dbname

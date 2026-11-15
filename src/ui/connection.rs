@@ -43,9 +43,22 @@ pub fn render_connection_fields(state: &mut NyvoApp, ui: &mut egui::Ui) {
                 let host = state.host.clone();
                 let dbname = state.dbname.clone();
                 let txc = state.tx.clone();
+                let mut config_dir_path = state.config_dir_path.clone();
+                let mut config_file_path = state.config_file_path.clone();
+                let name = state.name.clone();
 
                 state.runtime_tokio.spawn(async move {
-                    let result = create_pool(user, password, host, port, dbname).await;
+                    let result = create_pool(
+                        &mut config_dir_path,
+                        &mut config_file_path,
+                        name,
+                        user,
+                        password,
+                        host,
+                        port,
+                        dbname,
+                    )
+                    .await;
                     let _ = txc.send(AsyncChannelResult::PoolResult(result));
                 });
             }
