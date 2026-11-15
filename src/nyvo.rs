@@ -2,11 +2,13 @@ use crate::app_enums::{AsyncChannelResult, ConnectionMode};
 use crate::ui::connection::{render_connection_fields, render_connection_mode};
 
 use std::collections::HashMap;
+use std::fmt::format;
 use std::path::PathBuf;
 use std::sync::RwLock;
 
 use deadpool_postgres::Pool;
 use eframe::egui;
+use eframe::egui::debug_text::print;
 use std::sync::mpsc::{Receiver, Sender, channel};
 
 pub struct NyvoApp {
@@ -24,6 +26,7 @@ pub struct NyvoApp {
     pub port: String,
     pub dbname: String,
     pub connections: RwLock<HashMap<String, Pool>>,
+    pub log_info: String,
 }
 
 impl NyvoApp {
@@ -48,6 +51,7 @@ impl NyvoApp {
             port: String::from("5432"),
             dbname: String::from("postgres"),
             connections: RwLock::new(HashMap::new()),
+            log_info: String::new(),
         }
     }
 
@@ -64,6 +68,26 @@ impl NyvoApp {
 
 impl eframe::App for NyvoApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        if let Ok(result) = self.rx.try_recv() {
+            match result {
+                AsyncChannelResult::PoolResult(v) => match v {
+                    Ok(pool) => {
+                        self.add_pool(format!("{}:{}:{}", self.name, self.host, self.dbname), pool);
+                        self.log_info = String::from(format!(
+                            "Successfully connected to database '{}'",
+                            self.dbname
+                        ));
+                    }
+                    Err(e) => {
+                        self.log_info = String::from(format!(
+                            "Could connect to database '{}' due to error: {}",
+                            self.dbname, e
+                        ))
+                    }
+                },
+                AsyncChannelResult::QueryResult(_) => {}
+            }
+        }
         egui::Panel::left("sidebar").resizable(true).show(ui, |ui| {
             ui.heading("PostgreSQL Connection");
             render_connection_mode(self, ui);
@@ -76,6 +100,8 @@ impl eframe::App for NyvoApp {
             let _ = ui.button("Run SQL");
             ui.separator();
             ui.add(egui::TextEdit::multiline(&mut self.query).desired_width(available_width));
+            ui.separator();
+            ui.label(&self.log_info);
         });
     }
 }

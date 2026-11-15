@@ -1,4 +1,5 @@
-use crate::app_enums::ConnectionMode;
+use crate::app_enums::{AsyncChannelResult, ConnectionMode};
+use crate::db::create_pool;
 use crate::nyvo::NyvoApp;
 
 use eframe::egui;
@@ -10,6 +11,10 @@ pub fn render_connection_fields(state: &mut NyvoApp, ui: &mut egui::Ui) {
                 .num_columns(2)
                 .spacing([8.0, 6.0])
                 .show(ui, |ui| {
+                    ui.label("Name:");
+                    ui.text_edit_singleline(&mut state.name);
+                    ui.end_row();
+
                     ui.label("Host:");
                     ui.text_edit_singleline(&mut state.host);
                     ui.end_row();
@@ -31,7 +36,19 @@ pub fn render_connection_fields(state: &mut NyvoApp, ui: &mut egui::Ui) {
                     ui.end_row();
                 });
             ui.add_space(6.0);
-            let _ = ui.button("Connect with Credentials");
+            if ui.button("Connect with Credentials").clicked() {
+                let port: u16 = state.port.clone().trim().parse().unwrap_or(5432);
+                let user = state.user.clone();
+                let password = state.password.clone();
+                let host = state.host.clone();
+                let dbname = state.dbname.clone();
+                let txc = state.tx.clone();
+
+                state.runtime_tokio.spawn(async move {
+                    let result = create_pool(user, password, host, port, dbname).await;
+                    let _ = txc.send(AsyncChannelResult::PoolResult(result));
+                });
+            }
             ui.separator();
             ui.heading("Database Navigator");
             ui.label("Connect to a database to inspect tables and columns")
