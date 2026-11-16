@@ -3,7 +3,14 @@ use std::{path::PathBuf, time::Duration};
 use deadpool_postgres::{
     Manager, ManagerConfig, Pool, RecyclingMethod::Fast, Runtime::Tokio1, Timeouts,
 };
-use tokio_postgres::{Config, NoTls};
+use sqlparser::{
+    self,
+    ast::{Expr, LimitClause, Offset, OffsetRows, Statement, Value, ValueWithSpan},
+    dialect::PostgreSqlDialect,
+    parser,
+    tokenizer::Span,
+};
+use tokio_postgres::{Config, NoTls, SimpleQueryMessage};
 use uuid::Uuid;
 
 use crate::{app_structs::PgConnect, storage::add_creds};
@@ -68,4 +75,46 @@ pub async fn create_pool(
     )
     .map_err(|e| format!("Error adding credentials to config: {}", e))?;
     Ok((pool, id))
+}
+
+async fn query_sql(pool: &Pool, raw_sql: &String) -> Result<Vec<SimpleQueryMessage>, String> {
+    let client = pool
+        .get()
+        .await
+        .map_err(|e| format!("Database connection error: {}", e))?;
+    let pg_dialect = PostgreSqlDialect {};
+    let mut statements = parser::Parser::parse_sql(&pg_dialect, raw_sql)
+        .map_err(|e| format!("Error paginating sql: {}", e))?;
+    if statements.is_empty() {
+        return Ok(vec![]);
+    };
+    let mut last_result = Vec::new();
+    for (index, stm) in &mut statements.iter_mut().enumerate() {
+        if let Statement::Query(sql) = stm {
+            if sql.limit_clause.is_none() {
+                let limit = Some(Expr::Value(ValueWithSpan {
+                    value: Value::Number("100".to_string(), false),
+                    span: Span::empty(),
+                }));
+                let offset = Some(Offset {
+                    value: Expr::Value(ValueWithSpan {
+                        value: Value::Number("0".to_string(), false),
+                        span: Span::empty(),
+                    }),
+                    rows: OffsetRows::None,
+                });
+                sql.limit_clause = Some(LimitClause::LimitOffset {
+                    limit,
+                    offset,
+                    limit_by: vec![],
+                });
+            }
+        }
+        let ready_sql = stm.to_string();
+        last_result = client
+            .simple_query(&ready_sql)
+            .await
+            .map_err(|e| format!("Error during executing query {}: {}", index + 1, e))?;
+    }
+    return Ok(last_result);
 }
