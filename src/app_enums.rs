@@ -3,7 +3,7 @@ use tokio_postgres::SimpleQueryMessage;
 
 pub enum AsyncChannelResult {
     PoolResult(Result<(Pool, String), String>),
-    QueryResult(Result<Vec<SimpleQueryMessage>, tokio_postgres::Error>),
+    QueryResult(Result<Vec<SimpleQueryMessage>, String>),
 }
 
 #[derive(PartialEq)]

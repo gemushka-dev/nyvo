@@ -77,7 +77,7 @@ pub async fn create_pool(
     Ok((pool, id))
 }
 
-async fn query_sql(pool: &Pool, raw_sql: &String) -> Result<Vec<SimpleQueryMessage>, String> {
+pub async fn query_sql(pool: &Pool, raw_sql: &String) -> Result<Vec<SimpleQueryMessage>, String> {
     let client = pool
         .get()
         .await
