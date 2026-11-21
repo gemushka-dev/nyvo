@@ -28,6 +28,7 @@ pub struct NyvoApp {
     pub dbname: String,
     pub connections: RwLock<HashMap<String, Pool>>,
     pub saved_connections: Vec<PgConnect>,
+    pub current_connect: String,
     pub log_info: String,
 }
 
@@ -55,6 +56,7 @@ impl NyvoApp {
             dbname: String::from("postgres"),
             connections: RwLock::new(HashMap::new()),
             saved_connections,
+            current_connect: String::new(),
             log_info: String::new(),
         }
     }

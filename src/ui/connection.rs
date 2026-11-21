@@ -103,23 +103,31 @@ pub fn render_saved_connections(state: &mut NyvoApp, ui: &mut egui::Ui) {
             ui.horizontal(|ui| {
                 ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
                 for conn in state.saved_connections.iter() {
-                    ui.group(|ui| {
-                        ui.vertical(|ui| {
-                            ui.label(
-                                egui::RichText::new(&conn.name)
+                    let group = ui
+                        .group(|ui| {
+                            ui.vertical(|ui| {
+                                ui.label(
+                                    egui::RichText::new(&conn.name)
+                                        .weak()
+                                        .color(egui::Color32::WHITE),
+                                );
+                                ui.label(
+                                    egui::RichText::new(format!(
+                                        "{}:{} • {}",
+                                        &conn.host, &conn.port, &conn.username
+                                    ))
                                     .weak()
-                                    .color(egui::Color32::WHITE),
-                            );
-                            ui.label(
-                                egui::RichText::new(format!(
-                                    "{}:{} • {}",
-                                    &conn.host, &conn.port, &conn.username
-                                ))
-                                .weak()
-                                .color(egui::Color32::LIGHT_GRAY),
-                            )
-                        });
-                    });
+                                    .color(egui::Color32::LIGHT_GRAY),
+                                )
+                            });
+                        })
+                        .response
+                        .interact(egui::Sense::click())
+                        .on_hover_cursor(egui::CursorIcon::PointingHand);
+                    if group.clicked() {
+                        state.current_connect = conn.id.clone();
+                        println!("{}", state.current_connect);
+                    }
                 }
             });
         });
