@@ -101,7 +101,7 @@ impl eframe::App for NyvoApp {
                 },
                 AsyncChannelResult::QueryResult(v) => match v {
                     Ok(result) => {
-                        self.query_table_data = parse_simple_query(&result);
+                        self.query_table_data = parse_simple_query(&result, &mut self.log_info);
                     }
                     Err(e) => {
                         self.log_info =

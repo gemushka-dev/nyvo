@@ -1,7 +1,10 @@
 use crate::app_structs::QueryTableData;
 use tokio_postgres::SimpleQueryMessage;
 
-pub fn parse_simple_query(messages: &Vec<SimpleQueryMessage>) -> QueryTableData {
+pub fn parse_simple_query(
+    messages: &Vec<SimpleQueryMessage>,
+    log_info: &mut String,
+) -> QueryTableData {
     let mut columns = Vec::new();
     let mut rows = Vec::new();
 
@@ -26,6 +29,9 @@ pub fn parse_simple_query(messages: &Vec<SimpleQueryMessage>) -> QueryTableData 
                 if columns.is_empty() {
                     columns = cols.iter().map(|col| col.name().to_string()).collect();
                 }
+            }
+            SimpleQueryMessage::CommandComplete(rows_affected) => {
+                *log_info = String::from(format!("Rows affected: {}", rows_affected))
             }
             _ => {}
         };
