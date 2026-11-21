@@ -1,4 +1,9 @@
+use crate::app_enums::AsyncChannelResult;
 use crate::app_structs::QueryTableData;
+use crate::db::query_sql;
+use crate::nyvo::NyvoApp;
+
+use eframe::egui;
 use tokio_postgres::SimpleQueryMessage;
 
 pub fn parse_simple_query(
@@ -38,4 +43,19 @@ pub fn parse_simple_query(
     }
 
     QueryTableData { columns, rows }
+}
+
+pub fn execute_query(state: &mut NyvoApp) {
+    let queryc = state.query.clone();
+    let txc = state.tx.clone();
+    let poolc = state.get_pool(&state.current_connect);
+    match poolc {
+        Some(pool) => {
+            state.runtime_tokio.spawn(async move {
+                let result = query_sql(&pool, &queryc).await;
+                let _ = txc.send(AsyncChannelResult::QueryResult(result));
+            });
+        }
+        None => state.log_info = String::from("There is no active connect"),
+    }
 }

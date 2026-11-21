@@ -1,11 +1,10 @@
 use crate::app_enums::{AsyncChannelResult, ConnectionMode};
 use crate::app_structs::{PgConnect, QueryTableData};
-use crate::db::query_sql;
 use crate::ui::connection::{
     render_connection_fields, render_connection_mode, render_saved_connections,
 };
 use crate::ui::table::render_query_table;
-use crate::utils::parse_simple_query;
+use crate::utils::{execute_query, parse_simple_query};
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -122,18 +121,7 @@ impl eframe::App for NyvoApp {
         egui::CentralPanel::default().show(ui, |ui| {
             let available_width = ui.available_width();
             if ui.button("Run SQL").clicked() {
-                let queryc = self.query.clone();
-                let txc = self.tx.clone();
-                let poolc = self.get_pool(&self.current_connect);
-                match poolc {
-                    Some(pool) => {
-                        self.runtime_tokio.spawn(async move {
-                            let result = query_sql(&pool, &queryc).await;
-                            let _ = txc.send(AsyncChannelResult::QueryResult(result));
-                        });
-                    }
-                    None => self.log_info = String::from("There is no active connect"),
-                }
+                execute_query(self);
             }
             ui.separator();
             ui.add(egui::TextEdit::multiline(&mut self.query).desired_width(available_width));
