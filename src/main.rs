@@ -4,6 +4,7 @@ mod db;
 mod nyvo;
 mod storage;
 mod ui;
+mod utils;
 
 use nyvo::NyvoApp;
 use storage::create_configs;
