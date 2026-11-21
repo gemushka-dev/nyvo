@@ -1,5 +1,5 @@
 use crate::app_enums::{AsyncChannelResult, ConnectionMode};
-use crate::app_structs::PgConnect;
+use crate::app_structs::{PgConnect, QueryTableData};
 use crate::db::query_sql;
 use crate::ui::connection::{
     render_connection_fields, render_connection_mode, render_saved_connections,
@@ -31,6 +31,7 @@ pub struct NyvoApp {
     pub saved_connections: Vec<PgConnect>,
     pub current_connect: String,
     pub log_info: String,
+    pub query_table_data: QueryTableData,
 }
 
 impl NyvoApp {
@@ -59,6 +60,10 @@ impl NyvoApp {
             saved_connections,
             current_connect: String::new(),
             log_info: String::new(),
+            query_table_data: QueryTableData {
+                columns: vec![],
+                rows: vec![],
+            },
         }
     }
 

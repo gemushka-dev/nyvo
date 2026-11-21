@@ -15,3 +15,8 @@ pub struct PgConnect {
 pub struct NyvoConfig {
     pub connections: Vec<PgConnect>,
 }
+
+pub struct QueryTableData {
+    pub columns: Vec<String>,
+    pub rows: Vec<Vec<String>>,
+}
