@@ -57,6 +57,7 @@ pub fn render_connection_fields(state: &mut NyvoApp, ui: &mut egui::Ui) {
                         host,
                         port,
                         dbname,
+                        None,
                     )
                     .await;
                     let _ = txc.send(AsyncChannelResult::PoolResult(result));
@@ -126,6 +127,37 @@ pub fn render_saved_connections(state: &mut NyvoApp, ui: &mut egui::Ui) {
                         .on_hover_cursor(egui::CursorIcon::PointingHand);
                     if group.clicked() {
                         state.current_connect = conn.id.clone();
+                        let pool = state.get_pool(&state.current_connect);
+                        match pool {
+                            Some(_) => {}
+                            None => {
+                                let port: u16 = conn.port;
+                                let user = conn.username.clone();
+                                let password = conn.password.clone();
+                                let host = conn.host.clone();
+                                let dbname = conn.dbname.clone();
+                                let txc = state.tx.clone();
+                                let mut config_dir_path = state.config_dir_path.clone();
+                                let mut config_file_path = state.config_file_path.clone();
+                                let name = conn.name.clone();
+                                let id = conn.id.clone();
+                                state.runtime_tokio.spawn(async move {
+                                    let result = create_pool(
+                                        &mut config_dir_path,
+                                        &mut config_file_path,
+                                        name,
+                                        user,
+                                        password,
+                                        host,
+                                        port,
+                                        dbname,
+                                        Some(id),
+                                    )
+                                    .await;
+                                    let _ = txc.send(AsyncChannelResult::PoolResult(result));
+                                });
+                            }
+                        }
                         println!("{}", state.current_connect);
                     }
                 }

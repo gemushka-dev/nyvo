@@ -1,5 +1,6 @@
 use crate::app_enums::{AsyncChannelResult, ConnectionMode};
 use crate::app_structs::PgConnect;
+use crate::db::query_sql;
 use crate::ui::connection::{
     render_connection_fields, render_connection_mode, render_saved_connections,
 };
@@ -61,12 +62,12 @@ impl NyvoApp {
         }
     }
 
-    fn get_pool(&self, id: &String) -> Option<Pool> {
+    pub fn get_pool(&self, id: &String) -> Option<Pool> {
         let guard = self.connections.read().unwrap();
         guard.get(id).cloned()
     }
 
-    fn add_pool(&self, id: String, pool: Pool) {
+    pub fn add_pool(&self, id: String, pool: Pool) {
         let mut guard = self.connections.write().unwrap();
         guard.insert(id, pool);
     }
@@ -91,7 +92,13 @@ impl eframe::App for NyvoApp {
                         ))
                     }
                 },
-                AsyncChannelResult::QueryResult(_) => {}
+                AsyncChannelResult::QueryResult(v) => match v {
+                    Ok(result) => {}
+                    Err(e) => {
+                        self.log_info =
+                            String::from(format!("Error during executing user query: {}", e))
+                    }
+                },
             }
         }
         egui::Panel::left("sidebar").resizable(true).show(ui, |ui| {
@@ -105,7 +112,20 @@ impl eframe::App for NyvoApp {
 
         egui::CentralPanel::default().show(ui, |ui| {
             let available_width = ui.available_width();
-            let _ = ui.button("Run SQL");
+            if ui.button("Run SQL").clicked() {
+                let queryc = self.query.clone();
+                let txc = self.tx.clone();
+                let poolc = self.get_pool(&self.current_connect);
+                match poolc {
+                    Some(pool) => {
+                        self.runtime_tokio.spawn(async move {
+                            let result = query_sql(&pool, &queryc).await;
+                            let _ = txc.send(AsyncChannelResult::QueryResult(result));
+                        });
+                    }
+                    None => self.log_info = String::from("There is no active connect"),
+                }
+            }
             ui.separator();
             ui.add(egui::TextEdit::multiline(&mut self.query).desired_width(available_width));
             ui.separator();

@@ -24,6 +24,7 @@ pub async fn create_pool(
     host: String,
     port: u16,
     dbname: String,
+    existing_id: Option<String>,
 ) -> Result<(Pool, String), String> {
     let mut config = Config::new();
     config.user(&user);
@@ -59,21 +60,28 @@ pub async fn create_pool(
         .simple_query("SELECT 1")
         .await
         .map_err(|e| format!("Database query error: {}", e))?;
-    let id = Uuid::new_v4().to_string();
-    let _ = add_creds(
-        config_dir_path,
-        config_file_path,
-        PgConnect {
-            id: id.clone(),
-            name,
-            username: user,
-            password,
-            host,
-            port,
-            dbname,
-        },
-    )
-    .map_err(|e| format!("Error adding credentials to config: {}", e))?;
+    let id = match existing_id {
+        Some(v) => v,
+        None => {
+            let new_id = Uuid::new_v4().to_string();
+            let _ = add_creds(
+                config_dir_path,
+                config_file_path,
+                PgConnect {
+                    id: new_id.clone(),
+                    name,
+                    username: user,
+                    password,
+                    host,
+                    port,
+                    dbname,
+                },
+            )
+            .map_err(|e| format!("Error adding credentials to config: {}", e))?;
+            new_id
+        }
+    };
+
     Ok((pool, id))
 }
 
