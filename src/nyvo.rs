@@ -33,6 +33,7 @@ pub struct NyvoApp {
     pub current_connect: String,
     pub log_info: String,
     pub query_table_data: QueryTableData,
+    pub block_connect: bool,
 }
 
 impl NyvoApp {
@@ -65,6 +66,7 @@ impl NyvoApp {
                 columns: vec![],
                 rows: vec![],
             },
+            block_connect: true,
         }
     }
 
@@ -85,13 +87,25 @@ impl eframe::App for NyvoApp {
             match result {
                 AsyncChannelResult::PoolResult(v) => match v {
                     Ok(pool_result) => {
+                        let pg_connect = PgConnect {
+                            id: pool_result.1.clone(),
+                            name: self.name.clone(),
+                            username: self.user.clone(),
+                            password: self.password.clone(),
+                            host: self.host.clone(),
+                            port: self.port.clone().trim().parse().unwrap_or(5432),
+                            dbname: self.dbname.clone(),
+                        };
+                        self.saved_connections.push(pg_connect);
                         self.add_pool(pool_result.1, pool_result.0);
                         self.log_info = String::from(format!(
                             "Successfully connected to database '{}'",
                             self.dbname
                         ));
+                        self.block_connect = true;
                     }
                     Err(e) => {
+                        self.block_connect = true;
                         self.log_info = String::from(format!(
                             "Could connect to database '{}' due to error: {}",
                             self.dbname, e

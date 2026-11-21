@@ -7,34 +7,36 @@ use eframe::egui;
 pub fn render_connection_fields(state: &mut NyvoApp, ui: &mut egui::Ui) {
     match state.conn_mode {
         ConnectionMode::Credentials => {
-            egui::Grid::new("credentials_grid")
-                .num_columns(2)
-                .spacing([8.0, 6.0])
-                .show(ui, |ui| {
-                    ui.label("Name:");
-                    ui.text_edit_singleline(&mut state.name);
-                    ui.end_row();
+            ui.add_enabled_ui(state.block_connect, |ui| {
+                egui::Grid::new("credentials_grid")
+                    .num_columns(2)
+                    .spacing([8.0, 6.0])
+                    .show(ui, |ui| {
+                        ui.label("Name:");
+                        ui.text_edit_singleline(&mut state.name);
+                        ui.end_row();
 
-                    ui.label("Host:");
-                    ui.text_edit_singleline(&mut state.host);
-                    ui.end_row();
+                        ui.label("Host:");
+                        ui.text_edit_singleline(&mut state.host);
+                        ui.end_row();
 
-                    ui.label("Port:");
-                    ui.text_edit_singleline(&mut state.port);
-                    ui.end_row();
+                        ui.label("Port:");
+                        ui.text_edit_singleline(&mut state.port);
+                        ui.end_row();
 
-                    ui.label("Database:");
-                    ui.text_edit_singleline(&mut state.dbname);
-                    ui.end_row();
+                        ui.label("Database:");
+                        ui.text_edit_singleline(&mut state.dbname);
+                        ui.end_row();
 
-                    ui.label("User:");
-                    ui.text_edit_singleline(&mut state.user);
-                    ui.end_row();
+                        ui.label("User:");
+                        ui.text_edit_singleline(&mut state.user);
+                        ui.end_row();
 
-                    ui.label("Password:");
-                    ui.add(egui::TextEdit::singleline(&mut state.password).password(true));
-                    ui.end_row();
-                });
+                        ui.label("Password:");
+                        ui.add(egui::TextEdit::singleline(&mut state.password).password(true));
+                        ui.end_row();
+                    });
+            });
             ui.add_space(6.0);
             if ui.button("Connect with Credentials").clicked() {
                 let port: u16 = state.port.clone().trim().parse().unwrap_or(5432);
@@ -46,6 +48,7 @@ pub fn render_connection_fields(state: &mut NyvoApp, ui: &mut egui::Ui) {
                 let mut config_dir_path = state.config_dir_path.clone();
                 let mut config_file_path = state.config_file_path.clone();
                 let name = state.name.clone();
+                state.block_connect = false;
 
                 state.runtime_tokio.spawn(async move {
                     let result = create_pool(
