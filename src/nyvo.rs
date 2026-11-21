@@ -4,6 +4,8 @@ use crate::db::query_sql;
 use crate::ui::connection::{
     render_connection_fields, render_connection_mode, render_saved_connections,
 };
+use crate::ui::table::render_query_table;
+use crate::utils::parse_simple_query;
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -98,7 +100,9 @@ impl eframe::App for NyvoApp {
                     }
                 },
                 AsyncChannelResult::QueryResult(v) => match v {
-                    Ok(result) => {}
+                    Ok(result) => {
+                        self.query_table_data = parse_simple_query(&result);
+                    }
                     Err(e) => {
                         self.log_info =
                             String::from(format!("Error during executing user query: {}", e))
@@ -134,6 +138,7 @@ impl eframe::App for NyvoApp {
             ui.separator();
             ui.add(egui::TextEdit::multiline(&mut self.query).desired_width(available_width));
             ui.separator();
+            render_query_table(self, ui);
             ui.label(&self.log_info);
         });
     }
